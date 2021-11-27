@@ -32,3 +32,6 @@ class ArticleAPI:
         """Fetches media information for provided article."""
         media_response = requests.get(URLs.ArticleMedia.format(article_id=article_id))
         return self._response_data(media_response)
+
+
+article_api = ArticleAPI()
