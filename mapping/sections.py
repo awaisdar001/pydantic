@@ -1,12 +1,9 @@
 """sections data interface"""
-import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Dict, Union, List, Type
 
 from utils import parse_published_date, parse_modified_date, remove_tags
-
-TAG_RE = re.compile(r'<[^>]+>')
 
 
 class Parser(ABC):

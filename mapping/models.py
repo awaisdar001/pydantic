@@ -144,4 +144,3 @@ class Article(BaseModel):
         description="Datetime of article modification", default_factory=datetime.now
     )
     sections: List[Union[SECTION_TYPES]]
-

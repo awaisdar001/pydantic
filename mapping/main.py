@@ -1,24 +1,23 @@
 """scheduled python script to fetch & display articles."""
 import json
 import os
-import re
-import schedule
 import time
-from api import ArticleAPI
-from models import Article
+from json import JSONDecodeError
 from pprint import pprint
-from pydantic import ValidationError
-from sections import SectionParser
 from typing import Dict, Union, List, Optional
+
+from pydantic import ValidationError
+
+from api import article_api as api
+from models import Article
+from sections import SectionParser
 from urls import URLs
 from utils import parse_published_date, parse_modified_date
 
-TAG_RE = re.compile(r'<[^>]+>')
-PUB_DATE_FORMAT = '%Y-%m-%d-%H;%M;%S'
-MOD_DATE_FORMAT = '%Y-%m-%d-%H:%M:%S'
-
-api = ArticleAPI()
 DS = List[Dict[str, Union[str, int]]]
+Seconds = 0
+Minutes = 5
+SCHEDULE_TIME = Seconds + (Minutes * 60)
 
 
 class ArticlesScript:
@@ -95,7 +94,8 @@ class ArticlesScript:
         current_data = [article for article_id, article in self.articles.items()]
         if existing_data:
             current_data += existing_data
-        with open(self.data_file, 'a') as outfile:
+
+        with open(self.data_file, 'w') as outfile:
             json.dump(current_data, outfile, default=str)
 
     def read_json_file(self) -> Optional[List]:
@@ -106,8 +106,11 @@ class ArticlesScript:
         if not os.path.isfile(self.data_file):
             return
         with open(self.data_file) as json_file:
-            data = json.load(json_file)
-            return data
+            try:
+                data = json.load(json_file)
+                return data
+            except JSONDecodeError:
+                return
 
     def load_articles_from_file(self) -> None:
         """Loads the existing articles into a data struct."""
@@ -142,6 +145,7 @@ class ArticlesScript:
         self.add_article_details(new_articles)
         self.write_article_data_to_file()
         self.cleanup_in_memory_data()
+        self.print_articles()
 
     def print_articles(self) -> None:
         """Prints pydantic object if its valid otherwise prints error."""
@@ -158,15 +162,14 @@ class ArticlesScript:
         """
         self.load_articles_from_file()
         self.check_and_add_new_articles()
-        self.print_articles()
 
 
 if __name__ == "__main__":
-    # When the main script runs, run the script immediately.
-    ArticlesScript().run()
-
-    # Schedule task after every 5 mints
-    schedule.every(5).minutes.do(ArticlesScript().run)
+    print('Scheduled script initialized...')
     while True:
-        schedule.run_pending()
-        time.sleep(1)
+        # When the main script runs, run the script immediately.
+        ArticlesScript().run()
+
+        # Schedule task after defined time.
+        print(f'Waiting for {int(SCHEDULE_TIME)} seconds...')
+        time.sleep(SCHEDULE_TIME)
