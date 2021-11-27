@@ -2,16 +2,14 @@
 import json
 import os
 import re
-import time
-from pprint import pprint
-from typing import Dict, Union, List, Optional
-
 import schedule
-from pydantic import ValidationError
-
+import time
 from api import ArticleAPI
 from models import Article
+from pprint import pprint
+from pydantic import ValidationError
 from sections import SectionParser
+from typing import Dict, Union, List, Optional
 from urls import URLs
 from utils import parse_published_date, parse_modified_date
 
@@ -74,11 +72,11 @@ class ArticlesScript:
             print('No new articles found.')
             return
 
-        print(f'===>Found new articles {len(new_articles)}')
+        print(f'===> Found {len(new_articles)} new articles. Fetching details...')
         self.articles.update(new_articles)
         self.add_article_details(new_articles)
-        self.write_data_to_file()
-        self.cleanup_data()
+        self.write_article_data_to_file()
+        self.cleanup_in_memory_data()
 
     def add_article_details(self, articles: Dict) -> None:
         """
@@ -108,23 +106,15 @@ class ArticlesScript:
             self.articles[article_id] = article_data
 
     def print_articles(self) -> None:
-        """Prints pydantic object."""
+        """Prints pydantic object if its valid otherwise prints error."""
         try:
             for article_row in self.read_json_file():
                 article = Article(**article_row)
                 pprint(article.dict())
-        except ValidationError as e:
-            print(e.json())
+        except ValidationError as error:
+            pprint(error.json())
 
-    def run(self) -> None:
-        """
-        Public method to run script.
-        """
-        self.load_articles_from_file()
-        self.check_and_add_new_articles()
-        self.print_articles()
-
-    def write_data_to_file(self) -> None:
+    def write_article_data_to_file(self) -> None:
         """
         Helper method to write data to json file.
 
@@ -148,10 +138,10 @@ class ArticlesScript:
                 data = json.load(json_file)
                 return data
 
-    def cleanup_data(self) -> None:
+    def cleanup_in_memory_data(self) -> None:
         """
         Cleans up data struct to remove the data content that is already saved in file,
-        leaving just the keys for reference.
+        leaving just the keys for future reference.
         """
         self.articles = {article_id: {} for article_id in self.articles}
 
@@ -161,10 +151,21 @@ class ArticlesScript:
         if existing_data:
             self.articles = {article_row['id']: {} for article_row in existing_data}
 
+    def run(self) -> None:
+        """
+        Public method to run script.
+        """
+        self.load_articles_from_file()
+        self.check_and_add_new_articles()
+        self.print_articles()
 
-# Schedule task after every 5 mints
-schedule.every(5).seconds.do(ArticlesScript().run)
-schedule.every(5).minutes.do(ArticlesScript().run)
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+
+if __name__ == "__main__":
+    # When the main script runs, run the script immediately.
+    ArticlesScript().run()
+
+    # Schedule task after every 5 mints
+    schedule.every(5).minutes.do(ArticlesScript().run)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
