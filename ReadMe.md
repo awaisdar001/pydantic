@@ -47,5 +47,5 @@ What did I Learn
 3. Parser & Mapping for Article details - 2 hours
 4. Understanding `sections` information & writing re-usable parser - 2 hours
 5. Data validation for `pydantic` - 1 hour
-6. I/O implementation + Type hints - 1.5 hour
+6. I/O implementation + Type hints + docstrings - 1.5 hour
 7. Wrapping up: `Makefile`, `ReadMe.md` & `.gitignore` and VCS.  

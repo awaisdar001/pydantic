@@ -57,27 +57,6 @@ class ArticlesScript:
             clean_sections.append(section_data)
         return clean_sections
 
-    def check_and_add_new_articles(self) -> None:
-        """
-        Check and add if new articles are available.
-
-        Checks if new articles are available then adds them in the data struct. After processing,
-        it saves the information in the file to release the data from the memory.
-        """
-        articles = api.get_articles()
-        new_articles = {
-            article['id']: article for article in articles if article['id'] not in self.articles
-        }
-        if not new_articles:
-            print('No new articles found.')
-            return
-
-        print(f'===> Found {len(new_articles)} new articles. Fetching details...')
-        self.articles.update(new_articles)
-        self.add_article_details(new_articles)
-        self.write_article_data_to_file()
-        self.cleanup_in_memory_data()
-
     def add_article_details(self, articles: Dict) -> None:
         """
         Fetches details for the given articles from the API & updates the data struct.
@@ -105,15 +84,6 @@ class ArticlesScript:
 
             self.articles[article_id] = article_data
 
-    def print_articles(self) -> None:
-        """Prints pydantic object if its valid otherwise prints error."""
-        try:
-            for article_row in self.read_json_file():
-                article = Article(**article_row)
-                pprint(article.dict())
-        except ValidationError as error:
-            pprint(error.json())
-
     def write_article_data_to_file(self) -> None:
         """
         Helper method to write data to json file.
@@ -133,10 +103,17 @@ class ArticlesScript:
         If the json file exists then it reads the json file and returns the data,
         otherwise returns None.
         """
-        if os.path.isfile(self.data_file):
-            with open(self.data_file) as json_file:
-                data = json.load(json_file)
-                return data
+        if not os.path.isfile(self.data_file):
+            return
+        with open(self.data_file) as json_file:
+            data = json.load(json_file)
+            return data
+
+    def load_articles_from_file(self) -> None:
+        """Loads the existing articles into a data struct."""
+        existing_article_data = self.read_json_file()
+        if existing_article_data:
+            self.articles = {article['id']: {} for article in existing_article_data}
 
     def cleanup_in_memory_data(self) -> None:
         """
@@ -145,11 +122,35 @@ class ArticlesScript:
         """
         self.articles = {article_id: {} for article_id in self.articles}
 
-    def load_articles_from_file(self) -> None:
-        """Loads the existing articles into a data struct."""
-        existing_data = self.read_json_file()
-        if existing_data:
-            self.articles = {article_row['id']: {} for article_row in existing_data}
+    def check_and_add_new_articles(self) -> None:
+        """
+        Check and add if new articles are available.
+
+        Checks if new articles are available then adds them in the data struct. After processing,
+        it saves the information in the file to release the data from the memory.
+        """
+        articles = api.get_articles()
+        new_articles = {
+            article['id']: article for article in articles if article['id'] not in self.articles
+        }
+        if not new_articles:
+            print('No new articles found.')
+            return
+
+        print(f'===> Found {len(new_articles)} new articles. Fetching details...')
+        self.articles.update(new_articles)
+        self.add_article_details(new_articles)
+        self.write_article_data_to_file()
+        self.cleanup_in_memory_data()
+
+    def print_articles(self) -> None:
+        """Prints pydantic object if its valid otherwise prints error."""
+        try:
+            for article_row in self.read_json_file():
+                article = Article(**article_row)
+                pprint(article.dict())
+        except ValidationError as error:
+            pprint(error.json())
 
     def run(self) -> None:
         """
