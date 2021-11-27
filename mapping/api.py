@@ -25,7 +25,6 @@ class ArticleAPI:
 
     def get_article_detail(self, article_id: str) -> RD:
         """Fetches details of provided article id."""
-        print(f'Fetching Article Detail for: {article_id}')
         article_detail_response = requests.get(URLs.ArticleDetail.format(article_id=article_id))
         return self._response_data(article_detail_response)
 
